@@ -11,6 +11,13 @@ inputs:
     description: "OpenAI API model."
     required: false
     default: "gpt-4"
+  AI_PROVIDER:
+    description: "Can be either OPENAI or LLAMA3"
+    required: false
+    default: LLAMA3
+  LLAMA3_API_URL: http://localhost:11434
+    description: "Ollama base url"
+    required: true
   exclude:
     description: "Glob patterns to exclude files from the diff analysis"
     required: false

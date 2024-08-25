@@ -1,13 +1,16 @@
-import { readFileSync } from "fs";
 import * as core from "@actions/core";
-import OpenAI from "openai";
 import { Octokit } from "@octokit/rest";
-import parseDiff, { Chunk, File } from "parse-diff";
+import axios from "axios";
+import { readFileSync } from "fs";
 import minimatch from "minimatch";
+import OpenAI from "openai";
+import parseDiff, { Chunk, File } from "parse-diff";
 
 const GITHUB_TOKEN: string = core.getInput("GITHUB_TOKEN");
+const AI_PROVIDER: string = core.getInput("AI_PROVIDER"); // "OPENAI" or "LLAMA3"
 const OPENAI_API_KEY: string = core.getInput("OPENAI_API_KEY");
 const OPENAI_API_MODEL: string = core.getInput("OPENAI_API_MODEL");
+const LLAMA3_API_URL: string = core.getInput("LLAMA3_API_URL");
 
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
@@ -110,7 +113,32 @@ ${chunk.changes
 `;
 }
 
-async function getAIResponse(prompt: string): Promise<Array<{
+async function getAIResponse(prompt: string): Promise<Array<{ lineNumber: string; reviewComment: string }> | null> {
+  if (AI_PROVIDER === "OPENAI") {
+    return getOpenAIResponse(prompt);
+  } else if (AI_PROVIDER === "LLAMA3") {
+    return getLLaMA3Response(prompt);
+  } else {
+    throw new Error(`Unsupported AI provider: ${AI_PROVIDER}`);
+  }
+}
+
+async function getLLaMA3Response(prompt: string): Promise<Array<{ lineNumber: string; reviewComment: string }> | null> {
+  try {
+    const response = await axios.post(`${LLAMA3_API_URL}/api/generate`, {
+      prompt: prompt,
+      model: "llama3.1:8b",
+      stream: false,
+    });
+
+    return response.data?.response;
+  } catch (error) {
+    console.error("Error:", error);
+    return null;
+  }
+}
+
+async function getOpenAIResponse(prompt: string): Promise<Array<{
   lineNumber: string;
   reviewComment: string;
 }> | null> {
